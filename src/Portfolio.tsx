@@ -1,708 +1,993 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
-import * as THREE from 'three';
-import * as d3 from 'd3';
-import { Mail, Phone, Linkedin, Github, Globe, Award, Menu, X, ChevronDown, ExternalLink } from 'lucide-react';
+import { motion, useScroll, useMotionValue, useTransform, useMotionValueEvent } from 'framer-motion';
 
-// Portfolio Data
+import Lenis from '@studio-freight/lenis';
+import { ArrowUpRight, Mail, Github, Linkedin, ChevronDown, Copy, Check, Sun, Moon } from 'lucide-react';
+
+// --- Data ---
 const portfolioData = {
   personal: {
     name: "Indhar Jain",
-    title: "Front-End Architect & Micro-Frontend Specialist",
-    subtitle: "4 Years Crafting Scalable, High-Performance Web Applications",
-    location: "Chennai, Tamil Nadu, India",
+    role: "Front-End Architect",
+    bio: "Crafting scalable, high-performance web ecosystems. Specializing in micro-frontends and enterprise architecture.",
     email: "IndharJain@gmail.com",
-    phone: "+91-7842113663",
-    linkedin: "in/indhar-p",
-    github: "indharjain",
-    portfolio: "indhar.netlify.app"
+    location: "Chennai, India",
+    links: {
+      github: "https://github.com/indharjain",
+      linkedin: "https://linkedin.com/in/indhar-p"
+    }
   },
-  stats: { experience: 4, projects: 5, components: 50 },
+  skills: [
+    "React", "TypeScript", "Next.js", "Micro-Frontends", "Node.js", "GraphQL",
+    "Tailwind CSS", "Framer Motion", "Docker", "AWS", "System Design", "UI/UX"
+  ],
   projects: [
     {
-      name: "AAVA Elderwand",
-      description: "Advanced monorepo/micro-frontend architecture enabling modular, scalable enterprise UI ecosystems",
-      tech: ["Microservices", "Module Federation", "Component Library"],
-      color: "from-cyan-500 to-blue-600"
+      title: "AAVA Elderwand",
+      desc: "Enterprise micro-frontend architecture enabling modular UI ecosystems.",
+      tags: ["Microservices", "Module Federation", "React"],
+      year: "2024"
     },
     {
-      name: "AAVA Digital Ascender",
-      description: "AI-driven digital companion with chatbot interfaces and real-time AI guidance",
-      tech: ["AI/ML", "NLP", "VS Code Plugin"],
-      color: "from-purple-500 to-pink-600"
+      title: "Digital Ascender",
+      desc: "AI-driven digital companion with real-time guidance interfaces.",
+      tags: ["AI/ML", "NLP", "VS Code Plugin"],
+      year: "2023"
     },
     {
-      name: "AAVA ICE",
-      description: "Cloud cost governance platform with interactive D3.js visualizations",
-      tech: ["D3.js", "Highcharts", "AG Grid"],
-      color: "from-green-500 to-teal-600"
+      title: "Cloud Governance",
+      desc: "Interactive visualization platform for cloud cost analytics.",
+      tags: ["D3.js", "Highcharts", "Analytics"],
+      year: "2023"
     },
     {
-      name: "AAVA ITA",
-      description: "AI-powered testing platform with Jira integration",
-      tech: ["Test Automation", "Jira API", "File Management"],
-      color: "from-orange-500 to-red-600"
-    },
-    {
-      name: "AAVA IAF",
-      description: "Accessibility evaluation framework with Chrome extension",
-      tech: ["Chrome Extension", "WCAG", "Accessibility"],
-      color: "from-indigo-500 to-purple-600"
+      title: "Accessibility Framework",
+      desc: "Automated WCAG compliance testing suite with Chrome extension.",
+      tags: ["A11y", "Chrome Ext", "Testing"],
+      year: "2022"
     }
   ],
   experience: [
     {
       company: "Ascendion",
-      title: "Engineer",
-      date: "May 2023 - Present",
-      achievements: [
-        "Led monorepo/micro-frontend architecture",
-        "Designed SSO authentication framework (Azure AD, Keycloak)",
-        "Created 50+ reusable UI components",
-        "Implemented CI/CD pipelines"
-      ]
+      role: "Engineer",
+      period: "2023 — Present",
+      details: "Leading micro-frontend architecture and design systems."
     },
     {
       company: "Ascendion",
-      title: "Senior Associate Engineer",
-      date: "Feb 2022 - May 2023",
-      achievements: [
-        "Built AI chatbot interfaces with NLP",
-        "Created D3.js visualizations for cloud costs",
-        "Developed VS Code and Jira plugins"
-      ]
+      role: "Senior Associate",
+      period: "2022 — 2023",
+      details: "Developed AI interfaces and data visualization dashboards."
     },
     {
       company: "Enterprise Minds",
-      title: "Junior Software Engineer",
-      date: "Feb 2022 - May 2023",
-      achievements: [
-        "Built AG Grid upload systems",
-        "Developed Chrome extension for accessibility",
-        "Implemented WCAG compliance features"
-      ]
+      role: "Junior Engineer",
+      period: "2022 — 2023",
+      details: "Built accessibility tools and component libraries."
     }
-  ],
-  skills: [
-    { name: "React", category: "Frontend", level: 5 },
-    { name: "Angular", category: "Frontend", level: 5 },
-    { name: "TypeScript", category: "Languages", level: 5 },
-    { name: "JavaScript", category: "Languages", level: 5 },
-    { name: "D3.js", category: "Visualization", level: 4 },
-    { name: "Three.js", category: "Visualization", level: 3 },
-    { name: "Node.js", category: "Backend", level: 4 },
-    { name: "Azure DevOps", category: "DevOps", level: 4 },
-    { name: "Docker", category: "DevOps", level: 3 },
-    { name: "Micro-frontends", category: "Architecture", level: 5 }
   ]
 };
 
-// Three.js Hero Background Component
-const ThreeBackground = () => {
-  const containerRef = useRef(null);
-  const mouseRef = useRef({ x: 0, y: 0 });
+// --- Components ---
+
+const AuroraBackground = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    // Detect current theme
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    setTheme(currentTheme as 'light' | 'dark');
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    containerRef.current.appendChild(renderer.domElement);
-
-    // Create wireframe geometry
-    const geometry = new THREE.IcosahedronGeometry(2, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x00f5ff, wireframe: true });
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-
-    // Create particles
-    const particlesGeometry = new THREE.BufferGeometry();
-    const particleCount = 1500;
-    const positions = new Float32Array(particleCount * 3);
-
-    for (let i = 0; i < particleCount * 3; i++) {
-      positions[i] = (Math.random() - 0.5) * 10;
-    }
-
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const particlesMaterial = new THREE.PointsMaterial({ color: 0x7b2ff7, size: 0.02 });
-    const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-    scene.add(particles);
-
-    camera.position.z = 5;
-
-    // Mouse move handler
-    const handleMouseMove = (e) => {
-      mouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouseRef.current.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-
-    // Animation loop
-    const animate = () => {
-      requestAnimationFrame(animate);
-      
-      mesh.rotation.x += 0.001;
-      mesh.rotation.y += 0.002;
-      
-      particles.rotation.y += 0.0005;
-      
-      camera.position.x += (mouseRef.current.x * 0.5 - camera.position.x) * 0.05;
-      camera.position.y += (mouseRef.current.y * 0.5 - camera.position.y) * 0.05;
-      camera.lookAt(scene.position);
-      
-      renderer.render(scene, camera);
-    };
-    animate();
-
-    // Handle resize
-    const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('resize', handleResize);
-      containerRef.current?.removeChild(renderer.domElement);
-      geometry.dispose();
-      material.dispose();
-      particlesGeometry.dispose();
-      particlesMaterial.dispose();
-    };
-  }, []);
-
-  return <div ref={containerRef} className="absolute inset-0 opacity-30" />;
-};
-
-// D3 Skills Visualization
-const SkillsVisualization = ({ skills }) => {
-  const svgRef = useRef(null);
-  const isInView = useInView(svgRef, { once: true });
-
-  useEffect(() => {
-    if (!isInView || !svgRef.current) return;
-
-    const width = svgRef.current.clientWidth;
-    const height = 500;
-
-    d3.select(svgRef.current).selectAll("*").remove();
-
-    const svg = d3.select(svgRef.current)
-      .attr("viewBox", [0, 0, width, height]);
-
-    const categories = [...new Set(skills.map(s => s.category))];
-    const colorScale = d3.scaleOrdinal()
-      .domain(categories)
-      .range(['#00f5ff', '#7b2ff7', '#10b981', '#f59e0b', '#ef4444']);
-
-    const nodes = skills.map(s => ({
-      ...s,
-      x: width / 2 + (Math.random() - 0.5) * 100,
-      y: height / 2 + (Math.random() - 0.5) * 100,
-      radius: s.level * 8
-    }));
-
-    const simulation = d3.forceSimulation(nodes)
-      .force("charge", d3.forceManyBody().strength(-100))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => d.radius + 5));
-
-    const node = svg.selectAll("g")
-      .data(nodes)
-      .join("g")
-      .call(d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended));
-
-    node.append("circle")
-      .attr("r", d => d.radius)
-      .attr("fill", d => colorScale(d.category))
-      .attr("opacity", 0.8)
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 2);
-
-    node.append("text")
-      .text(d => d.name)
-      .attr("text-anchor", "middle")
-      .attr("dy", "0.3em")
-      .attr("fill", "#fff")
-      .attr("font-size", "12px")
-      .attr("font-weight", "600")
-      .style("pointer-events", "none");
-
-    simulation.on("tick", () => {
-      node.attr("transform", d => `translate(${d.x},${d.y})`);
+    const observer = new MutationObserver(() => {
+      const newTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      setTheme(newTheme as 'light' | 'dark');
     });
 
-    function dragstarted(event) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      event.subject.fx = event.subject.x;
-      event.subject.fy = event.subject.y;
-    }
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
 
-    function dragged(event) {
-      event.subject.fx = event.x;
-      event.subject.fy = event.y;
-    }
+    return () => observer.disconnect();
+  }, []);
 
-    function dragended(event) {
-      if (!event.active) simulation.alphaTarget(0);
-      event.subject.fx = null;
-      event.subject.fy = null;
-    }
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  }, [isInView, skills]);
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    let t = 0;
+
+    const animate = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      // Theme-aware colors
+      const isLight = theme === 'light';
+      const baseHue = isLight ? 30 : 200; // Warm for light, cool for dark
+      const saturation = isLight ? 25 : 60;
+      const lightness = isLight ? 75 : 15;
+      const opacity = isLight ? 0.08 : 0.15;
+
+      // Create flowing gradient
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, `hsla(${baseHue}, ${saturation}%, ${lightness}%, 0)`);
+      gradient.addColorStop(0.5, `hsla(${baseHue + t * 0.5}, ${saturation}%, ${lightness}%, ${opacity})`);
+      gradient.addColorStop(1, `hsla(${baseHue}, ${saturation}%, ${lightness}%, 0)`);
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw flowing waves
+      ctx.lineWidth = isLight ? 1 : 2;
+      for (let i = 0; i < (isLight ? 3 : 5); i++) {
+        ctx.beginPath();
+        const waveOpacity = isLight ? 0.02 : 0.05;
+        ctx.strokeStyle = `hsla(${baseHue + t + i * 50}, ${saturation + 10}%, ${isLight ? 60 : 50}%, ${waveOpacity})`;
+        for (let x = 0; x < width; x += 5) {
+          const y = height / 2 +
+            Math.sin(x * 0.005 + t * 0.02 + i) * 100 +
+            Math.sin(x * 0.01 + t * 0.01) * 50;
+          ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      t += 0.5;
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    const handleResize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [theme]);
+
+  return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none" />;
+};
+
+const SmartCursor = () => {
+  const cursorX = useMotionValue(-100);
+  const cursorY = useMotionValue(-100);
+  const [mode, setMode] = useState<'default' | 'lens'>('default');
+
+  // Optimize transformations by creating them once
+  const lensX = useTransform(cursorX, x => x - 128);
+  const lensY = useTransform(cursorY, y => y - 128);
+
+  // Syntax Trail State
+  const [trail, setTrail] = useState<{ x: number, y: number, char: string, id: number }[]>([]);
+  const syntaxChars = ['{', '}', '<', '>', '/', ';', '*', '&&', '||', '=>', '[]'];
+
+  useEffect(() => {
+    const moveCursor = (e: MouseEvent) => {
+      cursorX.set(e.clientX);
+      cursorY.set(e.clientY);
+
+      // Add syntax trail
+      if (mode === 'default' && Math.random() > 0.85) { // Reduce frequency slightly
+        setTrail(prev => {
+          const newTrail = [...prev, {
+            x: e.clientX,
+            y: e.clientY,
+            char: syntaxChars[Math.floor(Math.random() * syntaxChars.length)],
+            id: Date.now()
+          }];
+          return newTrail.slice(-10); // Keep only last 10
+        });
+      }
+    };
+
+    const checkTarget = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.distortion-target')) {
+        setMode('lens');
+        setTrail([]);
+      } else {
+        setMode('default');
+      }
+    };
+
+    window.addEventListener('mousemove', moveCursor);
+    window.addEventListener('mouseover', checkTarget);
+
+    return () => {
+      window.removeEventListener('mousemove', moveCursor);
+      window.removeEventListener('mouseover', checkTarget);
+    };
+  }, [cursorX, cursorY, mode]);
 
   return (
-    <div className="w-full bg-gradient-to-br from-slate-900/50 to-purple-900/20 rounded-2xl p-8 backdrop-blur-sm border border-cyan-500/20">
-      <svg ref={svgRef} className="w-full" style={{ height: '500px' }} />
+    <>
+      {/* Liquid Lens (Active only on 'lens' mode) */}
+      {mode === 'lens' && (
+        <>
+          <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+            <filter id="liquidFilter">
+              <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" result="warp" />
+              <feDisplacementMap xChannelSelector="R" yChannelSelector="G" scale="30" in="SourceGraphic" in2="warp" />
+            </filter>
+          </svg>
+          <motion.div
+            className="liquid-lens fixed top-0 left-0 w-64 h-64 rounded-full pointer-events-none z-[9999]"
+            style={{
+              x: lensX,
+              y: lensY,
+              background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+            }}
+          />
+        </>
+      )}
+
+      {/* Syntax Trail (Active only on 'default' mode) */}
+      {mode === 'default' && (
+        <div className="fixed inset-0 pointer-events-none z-[9999]">
+          {trail.map((point) => (
+            <motion.div
+              key={point.id}
+              initial={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.8 }}
+              className="absolute text-[var(--text-secondary)] font-mono text-xs font-bold"
+              style={{
+                left: point.x,
+                top: point.y,
+                transform: 'translate(-50%, -50%)'
+              }}
+            >
+              {point.char}
+            </motion.div>
+          ))}
+          {/* Terminal Block Cursor */}
+          <motion.div
+            className="absolute w-3 h-5 bg-[var(--text-primary)] animate-pulse"
+            style={{
+              x: cursorX,
+              y: cursorY,
+              translateX: "4px", // Offset slightly
+              translateY: "4px"
+            }}
+          />
+        </div>
+      )}
+    </>
+  );
+};
+
+const ScrollToTop = () => {
+  const { scrollY } = useScroll();
+  const [visible, setVisible] = useState(false);
+
+  useMotionValueEvent(scrollY, "change", (latest: number) => {
+    setVisible(latest > 400);
+  });
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{
+        opacity: visible ? 1 : 0,
+        scale: visible ? 1 : 0
+      }}
+      transition={{ duration: 0.3 }}
+      onClick={scrollToTop}
+      className="fixed bottom-8 right-8 z-50 p-4 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg hover:scale-110 transition-transform"
+      style={{ pointerEvents: visible ? 'auto' : 'none' }}
+      aria-label="Scroll to top"
+    >
+      <ChevronDown size={24} className="rotate-180" />
+    </motion.button>
+  );
+};
+
+
+const DecoderText = ({ text, className = "" }: { text: string; className?: string }) => {
+  const [displayText, setDisplayText] = useState(text);
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
+
+  const scramble = () => {
+    let iterations = 0;
+    const interval = setInterval(() => {
+      setDisplayText(
+        text
+          .split("")
+          .map((letter, index) => {
+            if (index < iterations) {
+              return text[index];
+            }
+            return chars[Math.floor(Math.random() * chars.length)];
+          })
+          .join("")
+      );
+
+      if (iterations >= text.length) {
+        clearInterval(interval);
+      }
+      iterations += 1 / 3;
+    }, 30);
+  };
+
+  return (
+    <span
+      className={`decoder-text inline-block cursor-default ${className}`}
+      onMouseEnter={scramble}
+    >
+      {displayText}
+    </span>
+  );
+};
+
+const Magnetic = ({ children }: { children: React.ReactNode }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  const handleMouse = (e: React.MouseEvent) => {
+    const { clientX, clientY } = e;
+    const { height, width, left, top } = ref.current!.getBoundingClientRect();
+    const middleX = clientX - (left + width / 2);
+    const middleY = clientY - (top + height / 2);
+    setPosition({ x: middleX * 0.1, y: middleY * 0.1 });
+  };
+
+  const reset = () => {
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const { x, y } = position;
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouse}
+      onMouseLeave={reset}
+      animate={{ x, y }}
+      transition={{ type: "spring", stiffness: 150, damping: 15, mass: 0.1 }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+const ThemeToggle = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  return (
+    <Magnetic>
+      <button
+        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        className="p-3 rounded-full hover:bg-[var(--bg-secondary)] transition-colors text-[var(--text-primary)]"
+        aria-label="Toggle theme"
+      >
+        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+      </button>
+    </Magnetic>
+  );
+};
+
+const SpotlightCard = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
+  const divRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = useState(0);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!divRef.current) return;
+    const rect = divRef.current.getBoundingClientRect();
+    const position = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    setPosition(position);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    setOpacity(1);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    setOpacity(0);
+  };
+
+  const handleMouseEnter = () => {
+    setOpacity(1);
+  };
+
+  const handleMouseLeave = () => {
+    setOpacity(0);
+  };
+
+  return (
+    <div
+      ref={divRef}
+      onMouseMove={handleMouseMove}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={`spotlight-card relative overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-8 transition-colors duration-300 ${className}`}
+      style={{
+        // @ts-ignore
+        "--mouse-x": `${position.x}px`,
+        "--mouse-y": `${position.y}px`,
+      }}
+    >
+      <div className="relative z-10">{children}</div>
     </div>
   );
 };
 
-// Main Portfolio Component
-export default function Portfolio() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('home');
-  const { scrollYProgress } = useScroll();
+const Marquee = () => {
+  return (
+    <div className="relative flex w-full overflow-hidden py-10 bg-[var(--bg-secondary)]">
+      <div className="absolute left-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-r from-[var(--bg-secondary)] to-transparent" />
+      <div className="absolute right-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-l from-[var(--bg-secondary)] to-transparent" />
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.3 }
-    }
+      <div className="flex animate-marquee whitespace-nowrap pause-on-hover">
+        {[...portfolioData.skills, ...portfolioData.skills, ...portfolioData.skills].map((skill, i) => (
+          <div key={i} className="mx-8 flex items-center gap-2 text-[var(--text-secondary)] font-medium text-lg">
+            <span className="w-2 h-2 rounded-full bg-[var(--text-secondary)] opacity-40" />
+            {skill}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const SectionHeading = ({ children }: { children: React.ReactNode }) => (
+  <motion.h2
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-widest mb-12"
+  >
+    {children}
+  </motion.h2>
+);
+
+const TiltCard = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useTransform(y, [-100, 100], [5, -5]);
+  const rotateY = useTransform(x, [-100, 100], [-5, 5]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct * 200);
+    y.set(yPct * 200);
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 60 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-purple-950 text-white min-h-screen">
-      {/* Progress Bar */}
-      <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-purple-500 z-50 origin-left"
-        style={{ scaleX: scrollYProgress }}
-      />
+    <motion.div
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+      className={`relative transition-all duration-200 ease-out ${className}`}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-slate-950/80 backdrop-blur-lg z-40 border-b border-cyan-500/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent"
-            >
-              IJ
-            </motion.div>
-            
-            {/* Desktop Menu */}
-            <div className="hidden md:flex space-x-8">
-              {['Home', 'About', 'Skills', 'Projects', 'Experience', 'Contact'].map((item) => (
-                <motion.a
-                  key={item}
-                  href={`#${item.toLowerCase()}`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="text-gray-300 hover:text-cyan-400 transition-colors"
-                >
-                  {item}
-                </motion.a>
+const ProjectCard = ({ project, index }: { project: typeof portfolioData.projects[0], index: number }) => {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["0 1", "1.2 1"]
+  });
+  const yProgress = useTransform(scrollYProgress, [0, 1], [300, 0]);
+  const opacityProgress = useTransform(scrollYProgress, [0, 0.5], [0, 1]);
+  const scaleProgress = useTransform(scrollYProgress, [0, 1], [0.8, 1]);
+
+  return (
+    <motion.div
+      ref={ref}
+      style={{
+        opacity: opacityProgress,
+        y: yProgress,
+        scale: scaleProgress,
+      }}
+      transition={{ type: "spring", stiffness: 50, damping: 20 }}
+    >
+      <TiltCard className="mb-8 perspective-1000">
+        <SpotlightCard className="group h-full">
+          <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-4 mb-4 transform transition-transform group-hover:translate-z-10">
+            <h3 className="text-2xl font-semibold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors">
+              {project.title}
+            </h3>
+            <span className="text-[var(--text-secondary)] font-mono text-sm">{project.year}</span>
+          </div>
+
+          <p className="text-[var(--text-secondary)] text-lg leading-relaxed mb-6 max-w-2xl transform transition-transform group-hover:translate-z-10">
+            {project.desc}
+          </p>
+
+          <div className="flex flex-wrap gap-2 justify-between items-end transform transition-transform group-hover:translate-z-10">
+            <div className="flex flex-wrap gap-2">
+              {project.tags.map(tag => (
+                <span key={tag} className="px-3 py-1 rounded-full border border-[var(--border-color)] text-xs text-[var(--text-secondary)] uppercase tracking-wider bg-[var(--bg-secondary)]">
+                  {tag}
+                </span>
               ))}
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-cyan-400"
+            <motion.div
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              initial={{ x: -10 }}
+              whileHover={{ x: 0 }}
             >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+              <ArrowUpRight className="w-6 h-6 text-[var(--text-primary)]" />
+            </motion.div>
           </div>
+        </SpotlightCard>
+      </TiltCard>
+    </motion.div>
+  );
+};
+
+const ExperienceRow = ({ item, index }: { item: typeof portfolioData.experience[0], index: number }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{ delay: index * 0.1 }}
+    className="grid grid-cols-1 md:grid-cols-12 gap-4 py-8 border-t border-[var(--border-color)] items-baseline hover:bg-[var(--bg-secondary)] transition-colors px-4 -mx-4 rounded-lg"
+  >
+    <div className="col-span-3 text-[var(--text-secondary)] font-mono text-sm">{item.period}</div>
+    <div className="col-span-4 text-xl font-medium text-[var(--text-primary)]">{item.company}</div>
+    <div className="col-span-5 text-[var(--text-secondary)]">{item.role}</div>
+  </motion.div>
+);
+
+// Dynamic status messages
+const statusMessages = {
+  welcome: [
+    "WELCOME, EXPLORER",
+    "HELLO, VISITOR",
+    "GREETINGS, TRAVELER",
+    "WELCOME ABOARD",
+    "NICE TO SEE YOU",
+    "READY TO EXPLORE?"
+  ],
+  return: [
+    "BACK SO SOON?",
+    "WELCOME BACK",
+    "MISSED SOMETHING?",
+    "RETURN DETECTED",
+    "GOOD TO SEE YOU AGAIN",
+    "READY FOR MORE?"
+  ]
+};
+
+const HolographicHeader = () => {
+  const { scrollY } = useScroll();
+  const [visible, setVisible] = useState(true);
+  const [message, setMessage] = useState("");
+  const [hasScrolledDown, setHasScrolledDown] = useState(false);
+  const lastScrollY = useRef(0);
+
+  // Set random welcome message on mount
+  useEffect(() => {
+    const randomWelcome = statusMessages.welcome[Math.floor(Math.random() * statusMessages.welcome.length)];
+    setMessage(randomWelcome);
+  }, []);
+
+  useMotionValueEvent(scrollY, "change", (latest: number) => {
+    const direction = latest > lastScrollY.current ? "down" : "up";
+
+    // Track if user has scrolled down significantly
+    if (latest > 200) {
+      setHasScrolledDown(true);
+    }
+
+    // Show return message when scrolling back to top
+    if (hasScrolledDown && latest < 50 && direction === "up") {
+      const randomReturn = statusMessages.return[Math.floor(Math.random() * statusMessages.return.length)];
+      setMessage(randomReturn);
+      setHasScrolledDown(false); // Reset so next scroll down/up cycle works
+    }
+
+    if (latest < 50) {
+      setVisible(true);
+    } else {
+      setVisible(direction === "up");
+    }
+    lastScrollY.current = latest;
+  });
+
+  return (
+    <motion.nav
+      initial={{ y: -100 }}
+      animate={{ y: visible ? 0 : -100 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed top-6 left-0 right-0 z-50 flex justify-center pointer-events-none"
+    >
+      <div className="pointer-events-auto flex items-center gap-6 px-6 py-3 rounded-2xl bg-[var(--bg-primary)]/10 backdrop-blur-xl border border-[var(--text-primary)]/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
+
+        {/* Status Indicator */}
+        <div className="flex items-center gap-2 text-[10px] font-mono tracking-widest text-[var(--text-secondary)] uppercase">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+          </span>
+          <motion.span
+            key={message}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {message}
+          </motion.span>
         </div>
 
-        {/* Mobile Menu */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-slate-900/95 backdrop-blur-lg"
-            >
-              <div className="px-4 py-4 space-y-3">
-                {['Home', 'About', 'Skills', 'Projects', 'Experience', 'Contact'].map((item) => (
-                  <a
-                    key={item}
-                    href={`#${item.toLowerCase()}`}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block text-gray-300 hover:text-cyan-400 py-2"
-                  >
-                    {item}
-                  </a>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
+        <div className="w-px h-4 bg-[var(--text-primary)]/20" />
 
-      {/* Hero Section */}
-      <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        <ThreeBackground />
-        
+        {/* Logo */}
+        <Magnetic>
+          <span className="font-bold text-lg tracking-tighter cursor-pointer mix-blend-difference text-[var(--text-primary)]">IJ</span>
+        </Magnetic>
+
+        <div className="w-px h-4 bg-[var(--text-primary)]/20" />
+
+        {/* Controls */}
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <Magnetic>
+            <a
+              href={`mailto:${portfolioData.personal.email}`}
+              className="px-4 py-1.5 rounded-lg bg-[var(--text-primary)] text-[var(--bg-primary)] text-xs font-bold tracking-wide hover:opacity-80 transition-opacity"
+            >
+              CONNECT
+            </a>
+          </Magnetic>
+        </div>
+      </div>
+    </motion.nav>
+  );
+};
+
+// --- Main ---
+
+export default function Portfolio() {
+
+
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 2.5, // Much slower, heavier feel
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      wheelMultiplier: 0.7, // Reduce scroll speed
+      touchMultiplier: 1.5,
+    });
+
+    function raf(time: number) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+
+    return () => {
+      lenis.destroy();
+    };
+  }, []);
+
+  const [copied, setCopied] = useState(false);
+
+  const copyEmail = () => {
+    navigator.clipboard.writeText(portfolioData.personal.email);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-500 relative selection:bg-[var(--text-primary)] selection:text-[var(--bg-primary)]">
+      <SmartCursor />
+      <AuroraBackground />
+      <ScrollToTop />
+
+      <HolographicHeader />
+
+      {/* Hero */}
+      <section className="min-h-screen flex flex-col justify-center px-6 pt-20 relative overflow-hidden">
+        {/* Hero Background Effect - Radial Spotlight */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,var(--text-primary)_0%,transparent_50%)] opacity-[0.03] dark:opacity-[0.08]" />
         <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="relative z-10 text-center px-4"
-        >
-          <motion.h1
-            variants={itemVariants}
-            className="text-5xl md:text-7xl font-bold mb-4 bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent"
-          >
-            {portfolioData.personal.name}
-          </motion.h1>
-          
-          <motion.h2
-            variants={itemVariants}
-            className="text-2xl md:text-3xl text-gray-300 mb-4"
-          >
-            {portfolioData.personal.title}
-          </motion.h2>
-          
-          <motion.p
-            variants={itemVariants}
-            className="text-lg md:text-xl text-gray-400 mb-8 max-w-2xl mx-auto"
-          >
-            {portfolioData.personal.subtitle}
-          </motion.p>
-          
+          className="absolute inset-0 bg-[radial-gradient(circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),var(--text-primary)_0%,transparent_40%)] opacity-[0.05] dark:opacity-[0.15] pointer-events-none"
+          animate={{
+            background: [
+              'radial-gradient(circle at 30% 40%, var(--text-primary) 0%, transparent 40%)',
+              'radial-gradient(circle at 70% 60%, var(--text-primary) 0%, transparent 40%)',
+              'radial-gradient(circle at 50% 50%, var(--text-primary) 0%, transparent 40%)',
+              'radial-gradient(circle at 30% 40%, var(--text-primary) 0%, transparent 40%)',
+            ]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <div className="max-w-5xl mx-auto w-full z-10">
           <motion.div
-            variants={itemVariants}
-            className="flex flex-wrap gap-4 justify-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="mb-8 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-sm"
           >
-            <motion.a
-              href="#projects"
-              whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(0, 245, 255, 0.5)" }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full font-semibold"
-            >
-              View Projects
-            </motion.a>
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(123, 47, 247, 0.5)" }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-3 border-2 border-purple-500 rounded-full font-semibold hover:bg-purple-500/10"
-            >
-              Download Resume
-            </motion.button>
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            Available for new projects
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5, duration: 1, repeat: Infinity, repeatType: "reverse" }}
-            className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+          <motion.h1
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            className="text-[12vw] leading-[0.9] font-bold tracking-tighter mb-8 mix-blend-exclusion distortion-target"
           >
-            <ChevronDown size={32} className="text-cyan-400" />
+            <DecoderText text="INDHAR" />
+            <br />
+            <span className="text-[var(--text-secondary)] opacity-50"><DecoderText text="JAIN" /></span>
+          </motion.h1>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 1 }}
+            className="flex flex-col md:flex-row gap-8 md:items-end justify-between max-w-4xl"
+          >
+            <p className="text-xl md:text-2xl text-[var(--text-secondary)] max-w-lg leading-relaxed text-balance">
+              {portfolioData.personal.bio}
+            </p>
+
+            <div className="flex gap-6">
+              <a href={portfolioData.personal.links.github} target="_blank" rel="noreferrer" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors transform hover:scale-110">
+                <Github size={28} />
+              </a>
+              <a href={portfolioData.personal.links.linkedin} target="_blank" rel="noreferrer" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors transform hover:scale-110">
+                <Linkedin size={28} />
+              </a>
+            </div>
           </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 1 }}
+          className="absolute bottom-12 left-6 animate-bounce"
+        >
+          <ChevronDown className="text-[var(--text-secondary)]" />
         </motion.div>
       </section>
 
-      {/* About Section */}
-      <section id="about" className="py-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-bold text-center mb-12 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent"
-          >
-            About Me
-          </motion.h2>
-
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {[
-              { label: 'Years Experience', value: portfolioData.stats.experience, suffix: '+' },
-              { label: 'Major Projects', value: portfolioData.stats.projects, suffix: '' },
-              { label: 'UI Components', value: portfolioData.stats.components, suffix: '+' }
-            ].map((stat, idx) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, scale: 0 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                whileHover={{ scale: 1.05, rotateY: 5 }}
-                className="bg-gradient-to-br from-cyan-500/10 to-purple-500/10 p-8 rounded-2xl backdrop-blur-sm border border-cyan-500/20 text-center"
-              >
-                <div className="text-5xl font-bold text-cyan-400 mb-2">
-                  {stat.value}{stat.suffix}
-                </div>
-                <div className="text-gray-400">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-lg text-gray-300 leading-relaxed max-w-4xl mx-auto text-center"
-          >
-            Results-driven Front-End Engineer with nearly 4 years of hands-on experience delivering user-centric, 
-            high-performance web applications in enterprise environments. Expertise in building scalable architectures, 
-            implementing secure authentication systems, developing micro front-end solutions, and creating reusable UI 
-            component libraries.
-          </motion.p>
-        </div>
+      {/* Marquee Skills */}
+      <section className="py-10 border-y border-[var(--border-color)]">
+        <Marquee />
       </section>
 
-      {/* Skills Section */}
-      <section id="skills" className="py-20 px-4 bg-slate-900/50">
-        <div className="max-w-6xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-bold text-center mb-12 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent"
-          >
-            Skills & Expertise
-          </motion.h2>
-
-          <SkillsVisualization skills={portfolioData.skills} />
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center text-gray-400 mt-6"
-          >
-            Drag nodes to explore • Size represents proficiency level
-          </motion.p>
+      {/* Projects */}
+      <section className="py-32 px-6 relative overflow-hidden">
+        {/* Projects Background - Floating Particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 rounded-full bg-[var(--text-primary)]"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                opacity: [0.1, 0.3, 0.1],
+              }}
+              transition={{
+                duration: 3 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
         </div>
-      </section>
-
-      {/* Projects Section */}
-      <section id="projects" className="py-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-bold text-center mb-12 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent"
-          >
-            Featured Projects
-          </motion.h2>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {portfolioData.projects.map((project, idx) => (
-              <motion.div
-                key={project.name}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                whileHover={{ 
-                  scale: 1.02, 
-                  rotateX: 2, 
-                  rotateY: 2,
-                  boxShadow: "0 20px 50px rgba(0, 245, 255, 0.3)"
-                }}
-                className={`bg-gradient-to-br ${project.color} p-[1px] rounded-2xl group`}
-              >
-                <div className="bg-slate-900 p-6 rounded-2xl h-full">
-                  <h3 className="text-2xl font-bold mb-3 text-white">
-                    {project.name}
-                  </h3>
-                  <p className="text-gray-300 mb-4">
-                    {project.description}
-                  </p>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {project.tech.map(tech => (
-                      <span
-                        key={tech}
-                        className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-sm text-cyan-400"
-                      >
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300"
-                  >
-                    View Details <ExternalLink size={16} />
-                  </motion.button>
-                </div>
-              </motion.div>
+        <div className="max-w-5xl mx-auto">
+          <SectionHeading>Selected Work</SectionHeading>
+          <div className="flex flex-col gap-4 relative">
+            {portfolioData.projects.map((project, i) => (
+              <ProjectCard key={i} project={project} index={i} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Experience Section */}
-      <section id="experience" className="py-20 px-4 bg-slate-900/50">
-        <div className="max-w-4xl mx-auto">
-          <motion.h2
+      {/* Experience */}
+      <section className="py-32 px-6 bg-[var(--bg-secondary)] relative overflow-hidden">
+        {/* Experience Background - Animated Grid */}
+        <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03]"
+          style={{
+            backgroundImage: 'linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(90deg, var(--border-color) 1px, transparent 1px)',
+            backgroundSize: '50px 50px'
+          }}
+        />
+        <motion.div
+          className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,var(--text-primary)_50%,transparent_100%)] opacity-[0.02] dark:opacity-[0.05]"
+          animate={{
+            backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          style={{ backgroundSize: '200% 100%' }}
+        />
+        <div className="max-w-5xl mx-auto">
+          <SectionHeading>Experience</SectionHeading>
+          <div className="flex flex-col">
+            {portfolioData.experience.map((item, i) => (
+              <ExperienceRow key={i} item={item} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Contact */}
+      <section className="py-32 px-6 min-h-[80vh] flex flex-col justify-center relative overflow-hidden">
+        {/* Contact Background - Intense Animated Gradients */}
+        <motion.div
+          className="absolute inset-0"
+          animate={{
+            background: [
+              'radial-gradient(circle at 20% 30%, var(--text-secondary) 0%, transparent 50%), radial-gradient(circle at 80% 70%, var(--text-secondary) 0%, transparent 50%)',
+              'radial-gradient(circle at 80% 30%, var(--text-secondary) 0%, transparent 50%), radial-gradient(circle at 20% 70%, var(--text-secondary) 0%, transparent 50%)',
+              'radial-gradient(circle at 50% 50%, var(--text-secondary) 0%, transparent 50%), radial-gradient(circle at 50% 50%, var(--text-secondary) 0%, transparent 50%)',
+              'radial-gradient(circle at 20% 30%, var(--text-secondary) 0%, transparent 50%), radial-gradient(circle at 80% 70%, var(--text-secondary) 0%, transparent 50%)',
+            ]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+          style={{ opacity: 0.08 }}
+        />
+        <div className="absolute inset-0 bg-[var(--bg-primary)]/50 backdrop-blur-[100px]" />
+
+        <div className="max-w-5xl mx-auto w-full relative z-10">
+          <SectionHeading>Let's Connect</SectionHeading>
+
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-bold text-center mb-12 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent"
+            transition={{ duration: 0.6 }}
           >
-            Professional Experience
-          </motion.h2>
+            <h2 className="text-[8vw] md:text-[6vw] font-bold tracking-tighter leading-none mb-12">
+              LET'S WORK
+              <br />
+              <span className="text-[var(--text-secondary)]">TOGETHER</span>
+            </h2>
 
-          <div className="relative">
-            {/* Timeline Line */}
-            <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-cyan-500 to-purple-500" />
-
-            {portfolioData.experience.map((exp, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.2 }}
-                className="relative pl-20 pb-12"
-              >
-                {/* Timeline Dot */}
-                <motion.div
-                  initial={{ scale: 0 }}
-                  whileInView={{ scale: 1 }}
-                  viewport={{ once: true }}
-                  className="absolute left-6 top-2 w-5 h-5 bg-cyan-400 rounded-full border-4 border-slate-900"
-                />
-
+            {/* Contact Options Grid */}
+            <div className="grid md:grid-cols-2 gap-6 mb-12">
+              {/* Email Card */}
+              <Magnetic>
                 <motion.div
                   whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl border border-cyan-500/20"
+                  className="group cursor-pointer p-6 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)]/50 backdrop-blur-sm hover:bg-[var(--bg-secondary)] transition-all duration-300"
+                  onClick={copyEmail}
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-2xl font-bold text-white">{exp.title}</h3>
-                      <p className="text-cyan-400">{exp.company}</p>
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="p-3 rounded-full bg-[var(--bg-secondary)] group-hover:bg-[var(--text-primary)] group-hover:text-[var(--bg-primary)] transition-all">
+                      <Mail size={20} />
                     </div>
-                    <span className="text-gray-400 text-sm">{exp.date}</span>
+                    <span className="text-sm font-mono tracking-wider text-[var(--text-secondary)] uppercase">Email</span>
                   </div>
-                  <ul className="space-y-2">
-                    {exp.achievements.map((achievement, i) => (
-                      <li key={i} className="text-gray-300 flex items-start">
-                        <span className="text-cyan-400 mr-2">▹</span>
-                        {achievement}
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="text-xl font-medium mb-2">{portfolioData.personal.email}</p>
+                  <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                    {copied ? (
+                      <>
+                        <Check size={14} className="text-green-500" />
+                        <span className="text-green-500">Copied to clipboard!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        <span>Click to copy</span>
+                      </>
+                    )}
+                  </div>
                 </motion.div>
-              </motion.div>
-            ))}
-          </div>
+              </Magnetic>
 
-          {/* Award */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            whileHover={{ scale: 1.05, rotate: [0, -2, 2, 0] }}
-            className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 p-6 rounded-2xl border-2 border-yellow-500/30 text-center mt-8"
-          >
-            <Award className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-yellow-400 mb-2">Champion Award</h3>
-            <p className="text-gray-300">Feb 2024 • Ascendion</p>
-            <p className="text-gray-400 mt-2">
-              Recognized for exceptional contributions and innovation in the AAVA platform
-            </p>
+              {/* Resume Download Card */}
+              <Magnetic>
+                <motion.a
+                  href="/Indhar_P_Front-End_Developer_Resume.pdf"
+                  download="Indhar_Jain_Resume.pdf"
+                  whileHover={{ scale: 1.02 }}
+                  className="group block p-6 rounded-2xl border border-[var(--border-color)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-90 transition-all duration-300"
+                >
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="p-3 rounded-full bg-[var(--bg-primary)]/10">
+                      <ArrowUpRight size={20} />
+                    </div>
+                    <span className="text-sm font-mono tracking-wider uppercase">Resume</span>
+                  </div>
+                  <p className="text-xl font-bold mb-2">Download CV</p>
+                  <p className="text-sm opacity-70">View my full experience & skills</p>
+                </motion.a>
+              </Magnetic>
+            </div>
+
+            {/* Social Links */}
+            <div className="flex flex-wrap gap-4">
+              <Magnetic>
+                <motion.a
+                  href={portfolioData.personal.links.github}
+                  target="_blank"
+                  rel="noreferrer"
+                  whileHover={{ y: -4 }}
+                  className="flex items-center gap-3 px-6 py-3 rounded-full border border-[var(--border-color)] bg-[var(--bg-primary)]/50 backdrop-blur-sm hover:bg-[var(--bg-secondary)] transition-all group"
+                >
+                  <Github size={20} />
+                  <span className="font-medium">GitHub</span>
+                  <ArrowUpRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                </motion.a>
+              </Magnetic>
+
+              <Magnetic>
+                <motion.a
+                  href={portfolioData.personal.links.linkedin}
+                  target="_blank"
+                  rel="noreferrer"
+                  whileHover={{ y: -4 }}
+                  className="flex items-center gap-3 px-6 py-3 rounded-full border border-[var(--border-color)] bg-[var(--bg-primary)]/50 backdrop-blur-sm hover:bg-[var(--bg-secondary)] transition-all group"
+                >
+                  <Linkedin size={20} />
+                  <span className="font-medium">LinkedIn</span>
+                  <ArrowUpRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                </motion.a>
+              </Magnetic>
+            </div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section id="contact" className="py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-5xl font-bold mb-12 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent"
-          >
-            Get In Touch
-          </motion.h2>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-xl text-gray-300 mb-12"
-          >
-            I'm always open to discussing new projects, creative ideas, or opportunities to be part of your vision.
-          </motion.p>
-
-          <div className="grid md:grid-cols-2 gap-6 mb-12">
-            {[
-              { icon: Mail, text: portfolioData.personal.email, href: `mailto:${portfolioData.personal.email}` },
-              { icon: Phone, text: portfolioData.personal.phone, href: `tel:${portfolioData.personal.phone}` },
-              { icon: Linkedin, text: portfolioData.personal.linkedin, href: `https://linkedin.com/${portfolioData.personal.linkedin}` },
-              { icon: Github, text: portfolioData.personal.github, href: `https://github.com/${portfolioData.personal.github}` }
-            ].map(({ icon: Icon, text, href }, idx) => (
-              <motion.a
-                key={text}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(0, 245, 255, 0.3)" }}
-                className="flex items-center gap-4 bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl border border-cyan-500/20"
-              >
-                <Icon className="text-cyan-400" size={24} />
-                <span className="text-gray-300">{text}</span>
-              </motion.a>
-            ))}
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(0, 245, 255, 0.5)" }}
-            whileTap={{ scale: 0.95 }}
-            className="px-12 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full text-xl font-semibold"
-          >
-            Let's Collaborate
-          </motion.button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 border-t border-cyan-500/20">
-        <div className="max-w-6xl mx-auto text-center">
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-gray-400"
-          >
-            © 2024 {portfolioData.personal.name}. Crafted with React, Three.js, D3.js & Framer Motion
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-gray-500 mt-2 text-sm"
-          >
-            {portfolioData.personal.location}
-          </motion.p>
+      <footer className="py-8 px-6 border-t border-[var(--border-color)] bg-[var(--bg-primary)]">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-[var(--text-secondary)] text-sm uppercase tracking-wider">
+          <span>© 2024 Indhar Jain</span>
+          <div className="flex gap-6">
+            <span>Chennai, India</span>
+            <span>Local Time: {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
         </div>
       </footer>
     </div>
