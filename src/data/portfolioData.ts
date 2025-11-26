@@ -77,7 +77,7 @@ export const portfolioData = {
         {
             company: "Ascendion",
             role: "Senior Associate Engineer",
-            period: "Feb 2022 — May 2023",
+            period: "May 2023 — Present",
             details: [
                 "Developed AI-driven digital engineering companion for planning, design, coding, testing, and delivery.",
                 "Built chatbot interfaces for real-time AI guidance and created POCs to enhance features and user experience.",
