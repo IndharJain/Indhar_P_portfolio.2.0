@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 

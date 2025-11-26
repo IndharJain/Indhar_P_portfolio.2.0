@@ -1,11 +1,11 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import { portfolioData } from '../data/portfolioData';
 import TiltCard from './TiltCard';
 import SpotlightCard from './SpotlightCard';
 
-const ProjectCard = ({ project, index }: { project: typeof portfolioData.projects[0], index: number }) => {
+const ProjectCard = ({ project }: { project: typeof portfolioData.projects[0] }) => {
     const ref = useRef(null);
     const { scrollYProgress } = useScroll({
         target: ref,

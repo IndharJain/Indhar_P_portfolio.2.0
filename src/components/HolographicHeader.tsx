@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import Magnetic from './Magnetic';
 import ThemeToggle from './ThemeToggle';

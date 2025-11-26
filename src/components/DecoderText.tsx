@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 const DecoderText = ({ text, className = "" }: { text: string; className?: string }) => {
     const [displayText, setDisplayText] = useState(text);
@@ -10,7 +10,7 @@ const DecoderText = ({ text, className = "" }: { text: string; className?: strin
             setDisplayText(
                 text
                     .split("")
-                    .map((letter, index) => {
+                    .map((_, index) => {
                         if (index < iterations) {
                             return text[index];
                         }

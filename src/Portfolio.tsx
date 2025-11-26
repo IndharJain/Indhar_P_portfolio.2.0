@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Github, Linkedin, ChevronDown, Mail, Check, Copy, ArrowUpRight } from 'lucide-react';
 
@@ -136,7 +136,7 @@ export default function Portfolio() {
           <SectionHeading>Selected Work</SectionHeading>
           <div className="flex flex-col gap-4 relative">
             {portfolioData.projects.map((project, i) => (
-              <ProjectCard key={i} project={project} index={i} />
+              <ProjectCard key={i} project={project} />
             ))}
           </div>
         </div>
