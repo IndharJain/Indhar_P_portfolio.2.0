@@ -237,8 +237,8 @@ export default function Portfolio() {
               {/* Resume Download Card */}
               <Magnetic>
                 <motion.a
-                  href="/Indhar_P_Front-End_Developer_Resume.pdf"
-                  download="Indhar_Jain_Resume.pdf"
+                  href="/Indhar P Front End Developer Resume.pdf"
+                  download="Indhar_P_Front-End_Developer_Resume.pdf"
                   whileHover={{ scale: 1.02 }}
                   className="group block p-6 rounded-2xl border border-[var(--border-color)] bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-90 transition-all duration-300"
                 >
