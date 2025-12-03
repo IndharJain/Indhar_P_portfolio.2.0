@@ -16,6 +16,7 @@ import Magnetic from './components/Magnetic';
 import Footer from './components/Footer';
 
 import SmartScroll from './components/SmartScroll';
+import FaviconManager from './components/FaviconManager';
 
 export default function Portfolio() {
   const [copied, setCopied] = useState(false);
@@ -28,6 +29,7 @@ export default function Portfolio() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-500 relative selection:bg-[var(--text-primary)] selection:text-[var(--bg-primary)]">
+      <FaviconManager />
       <SmartScroll />
       <SmartCursor />
       <ScrollToTop />
