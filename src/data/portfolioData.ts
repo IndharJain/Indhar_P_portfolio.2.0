@@ -1,9 +1,9 @@
 export const portfolioData = {
     personal: {
         name: "Indhar Premchand",
-        role: "Front-End Architect",
+        role: "Front-End Developer",
         bio: "Crafting scalable, high-performance web ecosystems. Specializing in micro-frontends and enterprise architecture.",
-        email: "IndharJain@gmail.com",
+        email: "Indharjain@gmail.com",
         location: "Chennai, India",
         links: {
             github: "https://github.com/indharjain",
